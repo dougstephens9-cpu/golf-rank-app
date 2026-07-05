@@ -4,6 +4,8 @@ import { supabase } from '../lib/supabaseClient'
 import { useAuth } from '../context/AuthContext'
 import TopBar from '../components/TopBar'
 import ScoreBadge from '../components/ScoreBadge'
+import MapView from '../components/MapView'
+import Rankings from '../components/Rankings'
 
 const RESULT_LIMIT = 100
 const MIN_QUERY_LEN = 2
@@ -25,6 +27,7 @@ export default function Search() {
   const [newCourse, setNewCourse] = useState({ name: '', city: '', state: '' })
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [view, setView] = useState('list')
   const { user } = useAuth()
   const navigate = useNavigate()
 
@@ -113,45 +116,74 @@ export default function Search() {
           className="w-full border border-gray-300 rounded-xl px-4 py-3 mb-4 bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-600"
         />
 
-        {showPrompt && !searching && (
-          <p className="text-center text-gray-500 mt-8">
-            Start typing to search{totalCount != null ? ` ${totalCount.toLocaleString()}` : ''} courses.
-          </p>
-        )}
-
-        {!showPrompt && searching && (
-          <p className="text-center text-gray-400 mt-8">Searching…</p>
-        )}
-
-        {!showPrompt && !searching && results.length === 0 && (
-          <p className="text-center text-gray-500 mt-8">No courses found for "{query}".</p>
-        )}
-
-        <div className="space-y-2">
-          {results.map((c) => (
-            <button
-              key={c.course_id}
-              onClick={() => navigate(`/course/${c.course_id}`)}
-              className="w-full flex items-center gap-3 bg-white rounded-xl p-3 shadow-sm text-left hover:bg-gray-50"
-            >
-              <ScoreBadge score={c.avg_overall} />
-              <div className="flex-1 min-w-0">
-                <p className="font-semibold text-gray-900 truncate">{c.name}</p>
-                <p className="text-xs text-gray-500 truncate">
-                  {[c.city, c.state].filter(Boolean).join(', ') || 'Location not set'}
-                  {' · '}
-                  {c.review_count} review{c.review_count === 1 ? '' : 's'}
-                </p>
-              </div>
-              <span className="text-gray-300">›</span>
-            </button>
-          ))}
+        <div className="flex bg-gray-200 rounded-lg p-1 mb-4 w-fit mx-auto">
+          <button
+            onClick={() => setView('list')}
+            className={`px-4 py-1.5 rounded-md text-sm font-semibold ${
+              view === 'list' ? 'bg-white text-emerald-800 shadow-sm' : 'text-gray-500'
+            }`}
+          >
+            List
+          </button>
+          <button
+            onClick={() => setView('map')}
+            className={`px-4 py-1.5 rounded-md text-sm font-semibold ${
+              view === 'map' ? 'bg-white text-emerald-800 shadow-sm' : 'text-gray-500'
+            }`}
+          >
+            Map
+          </button>
         </div>
 
-        {truncated && (
-          <p className="text-center text-xs text-gray-400 mt-3">
-            Showing first {RESULT_LIMIT} matches — refine your search to narrow it down.
-          </p>
+        {view === 'map' ? (
+          <MapView query={query} onSelectCourse={(id) => navigate(`/course/${id}`)} />
+        ) : (
+          <>
+            {showPrompt && !searching && (
+              <div className="mt-2 mb-6">
+                <p className="text-center text-gray-500 mb-6">
+                  Start typing above to search{totalCount != null ? ` ${totalCount.toLocaleString()}` : ''} courses,
+                  or browse the rankings below.
+                </p>
+                <Rankings onSelectCourse={(id) => navigate(`/course/${id}`)} />
+              </div>
+            )}
+
+            {!showPrompt && searching && (
+              <p className="text-center text-gray-400 mt-8">Searching…</p>
+            )}
+
+            {!showPrompt && !searching && results.length === 0 && (
+              <p className="text-center text-gray-500 mt-8">No courses found for "{query}".</p>
+            )}
+
+            <div className="space-y-2">
+              {results.map((c) => (
+                <button
+                  key={c.course_id}
+                  onClick={() => navigate(`/course/${c.course_id}`)}
+                  className="w-full flex items-center gap-3 bg-white rounded-xl p-3 shadow-sm text-left hover:bg-gray-50"
+                >
+                  <ScoreBadge score={c.avg_overall} />
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-gray-900 truncate">{c.name}</p>
+                    <p className="text-xs text-gray-500 truncate">
+                      {[c.city, c.state].filter(Boolean).join(', ') || 'Location not set'}
+                      {' · '}
+                      {c.review_count} review{c.review_count === 1 ? '' : 's'}
+                    </p>
+                  </div>
+                  <span className="text-gray-300">›</span>
+                </button>
+              ))}
+            </div>
+
+            {truncated && (
+              <p className="text-center text-xs text-gray-400 mt-3">
+                Showing first {RESULT_LIMIT} matches — refine your search to narrow it down.
+              </p>
+            )}
+          </>
         )}
 
         {!showAddForm ? (

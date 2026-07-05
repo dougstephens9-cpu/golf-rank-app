@@ -16,6 +16,9 @@ export default function Friends() {
   const [loading, setLoading] = useState(true)
   const [notice, setNotice] = useState('')
 
+  const [recs, setRecs] = useState([])
+  const [loadingRecs, setLoadingRecs] = useState(true)
+
   async function loadFriendships() {
     setLoading(true)
     const { data: rows } = await supabase
@@ -45,9 +48,31 @@ export default function Friends() {
     setLoading(false)
   }
 
+  async function loadRecommendations() {
+    setLoadingRecs(true)
+    const { data } = await supabase
+      .from('recommendations')
+      .select('*, courses(id, name, city, state), sender:profiles!recommendations_sender_id_fkey(username)')
+      .eq('recipient_id', user.id)
+      .order('created_at', { ascending: false })
+    setRecs(data || [])
+    setLoadingRecs(false)
+  }
+
   useEffect(() => {
     loadFriendships()
+    loadRecommendations()
   }, [user.id])
+
+  async function dismissRecommendation(id) {
+    await supabase.from('recommendations').delete().eq('id', id)
+    setRecs((prev) => prev.filter((r) => r.id !== id))
+  }
+
+  async function viewRecommendation(rec) {
+    await supabase.from('recommendations').update({ seen: true }).eq('id', rec.id)
+    navigate(`/course/${rec.courses?.id}`)
+  }
 
   async function handleSearch(e) {
     e.preventDefault()
@@ -91,6 +116,49 @@ export default function Friends() {
     <div>
       <TopBar title="Friends" />
       <div className="p-4">
+        {!loadingRecs && recs.length > 0 && (
+          <div className="mb-6">
+            <h2 className="font-bold text-gray-800 mb-2">Courses your friends recommend</h2>
+            <div className="space-y-2">
+              {recs.map((rec) => (
+                <div key={rec.id} className="bg-white rounded-xl p-3 shadow-sm">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="font-semibold text-gray-900 truncate">{rec.courses?.name}</p>
+                      <p className="text-xs text-gray-500 truncate">
+                        {[rec.courses?.city, rec.courses?.state].filter(Boolean).join(', ')}
+                      </p>
+                      <p className="text-xs text-emerald-700 mt-1">
+                        from {rec.sender?.username || 'a friend'}
+                      </p>
+                      {rec.message && (
+                        <p className="text-sm text-gray-700 mt-1 italic">"{rec.message}"</p>
+                      )}
+                    </div>
+                    {!rec.seen && (
+                      <span className="w-2 h-2 rounded-full bg-emerald-600 shrink-0 mt-1" />
+                    )}
+                  </div>
+                  <div className="flex gap-2 mt-2">
+                    <button
+                      onClick={() => viewRecommendation(rec)}
+                      className="text-sm font-semibold text-emerald-700"
+                    >
+                      View course →
+                    </button>
+                    <button
+                      onClick={() => dismissRecommendation(rec.id)}
+                      className="text-sm font-semibold text-gray-400 ml-auto"
+                    >
+                      Dismiss
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         <form onSubmit={handleSearch} className="flex gap-2 mb-4">
           <input
             type="text"

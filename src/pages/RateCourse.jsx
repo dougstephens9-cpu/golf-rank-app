@@ -64,11 +64,16 @@ export default function RateCourse() {
       },
       { onConflict: 'user_id,course_id' }
     )
-    setSaving(false)
     if (error) {
+      setSaving(false)
       setError(error.message)
       return
     }
+
+    // Once you've actually played and rated it, it's no longer "want to play".
+    await supabase.from('wishlist').delete().eq('user_id', user.id).eq('course_id', courseId)
+
+    setSaving(false)
     navigate(`/course/${courseId}`)
   }
 
