@@ -1,0 +1,17 @@
+{
+  "name": "Fairway Ranks",
+  "short_name": "Fairway Ranks",
+  "description": "Rank the golf courses you play and share your Top 10 with friends.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1b5e3c",
+  "theme_color": "#1b5e3c",
+  "icons": [
+    {
+      "src": "/golf-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
