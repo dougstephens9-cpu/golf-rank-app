@@ -102,7 +102,7 @@ export default function Search() {
 
   return (
     <div>
-      <TopBar title="Find a Course" />
+      <TopBar title="Courses" />
       <div className="p-4">
         <input
           type="text"

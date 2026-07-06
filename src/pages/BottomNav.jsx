@@ -4,7 +4,8 @@ import { supabase } from '../lib/supabaseClient'
 import { useAuth } from '../context/AuthContext'
 
 const tabs = [
-  { to: '/', label: 'Search', icon: '⛳' },
+  { to: '/', label: 'Home', icon: '🏠' },
+  { to: '/courses', label: 'Courses', icon: '⛳' },
   { to: '/top10', label: 'My Courses', icon: '🏆' },
   { to: '/friends', label: 'Friends', icon: '👥' },
   { to: '/profile', label: 'Profile', icon: '⚙️' },
@@ -44,6 +45,7 @@ export default function BottomNav() {
         <NavLink
           key={tab.to}
           to={tab.to}
+          end={tab.to === '/'}
           className={({ isActive }) =>
             `flex flex-col items-center justify-center gap-0.5 py-2 px-3 flex-1 text-xs font-medium ${
               isActive ? 'text-emerald-700' : 'text-gray-400'

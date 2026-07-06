@@ -105,7 +105,7 @@ export default function Top10() {
             <div className="text-center mt-10">
               <p className="text-gray-500 mb-4">You haven't rated any courses yet.</p>
               <button
-                onClick={() => navigate('/')}
+                onClick={() => navigate('/courses')}
                 className="bg-emerald-700 text-white font-semibold px-4 py-2 rounded-lg"
               >
                 Find a course to rate
@@ -134,7 +134,7 @@ export default function Top10() {
               No courses starred yet. Tap the ⭐ on any course page to save it here.
             </p>
             <button
-              onClick={() => navigate('/')}
+              onClick={() => navigate('/courses')}
               className="bg-emerald-700 text-white font-semibold px-4 py-2 rounded-lg"
             >
               Find a course
