@@ -3,14 +3,14 @@ export default function ScoreSlider({ label, description, value, onChange }) {
     <div className="mb-6">
       <div className="flex items-baseline justify-between mb-1">
         <label className="font-semibold text-gray-800">{label}</label>
-        <span className="text-lg font-bold text-emerald-700">{value}/10</span>
+        <span className="text-lg font-bold text-emerald-700">{value.toFixed(1)}/10</span>
       </div>
       {description && <p className="text-xs text-gray-500 mb-2">{description}</p>}
       <input
         type="range"
         min="1"
         max="10"
-        step="1"
+        step="0.1"
         value={value}
         onChange={(e) => onChange(Number(e.target.value))}
         className="w-full"
