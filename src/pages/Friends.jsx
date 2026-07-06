@@ -108,6 +108,8 @@ export default function Friends() {
       await supabase.from('friendships').delete().eq('id', friendshipId)
     }
     loadFriendships()
+    // Let the bottom nav know right away so its badge count updates instantly.
+    window.dispatchEvent(new Event('friendships-changed'))
   }
 
   const friendIds = new Set(friends.map((f) => f.id))
