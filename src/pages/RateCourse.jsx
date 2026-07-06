@@ -19,6 +19,10 @@ export default function RateCourse() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
+  const [playedWith, setPlayedWith] = useState([]) // [{ id, username }]
+  const [pmSearch, setPmSearch] = useState('')
+  const [pmResults, setPmResults] = useState([])
+
   useEffect(() => {
     async function load() {
       const { data: courseData } = await supabase
@@ -40,11 +44,46 @@ export default function RateCourse() {
         setCourseScore(existing.course_score)
         setPriceScore(existing.price_score)
         setComment(existing.comment || '')
+
+        const { data: partners } = await supabase
+          .from('rating_playmates')
+          .select('partner_id, profiles(id, username)')
+          .eq('rating_id', existing.id)
+        setPlayedWith((partners || []).map((p) => p.profiles).filter(Boolean))
       }
       setLoading(false)
     }
     load()
   }, [courseId, user.id])
+
+  useEffect(() => {
+    const term = pmSearch.trim()
+    if (term.length < 2) {
+      setPmResults([])
+      return
+    }
+    const timer = setTimeout(async () => {
+      const { data } = await supabase
+        .from('profiles')
+        .select('id, username')
+        .ilike('username', `%${term}%`)
+        .neq('id', user.id)
+        .limit(8)
+      const alreadyAdded = new Set(playedWith.map((p) => p.id))
+      setPmResults((data || []).filter((p) => !alreadyAdded.has(p.id)))
+    }, 250)
+    return () => clearTimeout(timer)
+  }, [pmSearch, playedWith, user.id])
+
+  function addPlaymate(p) {
+    setPlayedWith((prev) => [...prev, p])
+    setPmSearch('')
+    setPmResults([])
+  }
+
+  function removePlaymate(id) {
+    setPlayedWith((prev) => prev.filter((p) => p.id !== id))
+  }
 
   const average = ((serviceScore + courseScore + priceScore) / 3).toFixed(2)
 
@@ -52,18 +91,23 @@ export default function RateCourse() {
     e.preventDefault()
     setError('')
     setSaving(true)
-    const { error } = await supabase.from('ratings').upsert(
-      {
-        user_id: user.id,
-        course_id: courseId,
-        service_score: serviceScore,
-        course_score: courseScore,
-        price_score: priceScore,
-        comment: comment.trim() || null,
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: 'user_id,course_id' }
-    )
+    const { data: savedRating, error } = await supabase
+      .from('ratings')
+      .upsert(
+        {
+          user_id: user.id,
+          course_id: courseId,
+          service_score: serviceScore,
+          course_score: courseScore,
+          price_score: priceScore,
+          comment: comment.trim() || null,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: 'user_id,course_id' }
+      )
+      .select()
+      .single()
+
     if (error) {
       setSaving(false)
       setError(error.message)
@@ -72,6 +116,14 @@ export default function RateCourse() {
 
     // Once you've actually played and rated it, it's no longer "want to play".
     await supabase.from('wishlist').delete().eq('user_id', user.id).eq('course_id', courseId)
+
+    // Replace the tagged playmates with whatever's currently selected.
+    await supabase.from('rating_playmates').delete().eq('rating_id', savedRating.id)
+    if (playedWith.length > 0) {
+      await supabase.from('rating_playmates').insert(
+        playedWith.map((p) => ({ rating_id: savedRating.id, partner_id: p.id }))
+      )
+    }
 
     setSaving(false)
     navigate(`/course/${courseId}`)
@@ -128,6 +180,54 @@ export default function RateCourse() {
           onChange={(e) => setComment(e.target.value)}
           className="w-full border border-gray-300 rounded-lg px-3 py-2 mb-4"
         />
+
+        <label className="block font-semibold text-gray-800 mb-1">Who'd you play with?</label>
+        <p className="text-xs text-gray-500 mb-2">
+          Tag other Fairway Ranks users who joined your round.
+        </p>
+
+        {playedWith.length > 0 && (
+          <div className="flex flex-wrap gap-2 mb-2">
+            {playedWith.map((p) => (
+              <span
+                key={p.id}
+                className="flex items-center gap-1 bg-emerald-100 text-emerald-800 text-sm font-medium px-3 py-1 rounded-full"
+              >
+                {p.username}
+                <button
+                  type="button"
+                  onClick={() => removePlaymate(p.id)}
+                  className="text-emerald-600 font-bold"
+                >
+                  ×
+                </button>
+              </span>
+            ))}
+          </div>
+        )}
+
+        <input
+          type="text"
+          placeholder="Search by username…"
+          value={pmSearch}
+          onChange={(e) => setPmSearch(e.target.value)}
+          className="w-full border border-gray-300 rounded-lg px-3 py-2 mb-1"
+        />
+        {pmResults.length > 0 && (
+          <div className="bg-white border border-gray-200 rounded-lg shadow-sm mb-4 overflow-hidden">
+            {pmResults.map((p) => (
+              <button
+                type="button"
+                key={p.id}
+                onClick={() => addPlaymate(p)}
+                className="w-full text-left px-3 py-2 hover:bg-gray-50 text-sm font-medium text-gray-700"
+              >
+                + {p.username}
+              </button>
+            ))}
+          </div>
+        )}
+        {pmResults.length === 0 && <div className="mb-4" />}
 
         {error && <p className="text-red-600 text-sm mb-3">{error}</p>}
 

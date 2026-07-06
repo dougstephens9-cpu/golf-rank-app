@@ -36,7 +36,7 @@ export default function CourseDetail() {
           supabase.from('course_aggregates').select('*').eq('course_id', courseId).single(),
           supabase
             .from('ratings')
-            .select('*, profiles(username)')
+            .select('*, profiles(username), rating_playmates(profiles(username))')
             .eq('course_id', courseId)
             .order('created_at', { ascending: false }),
           supabase
@@ -257,9 +257,18 @@ export default function CourseDetail() {
                 </span>
               </div>
               <p className="text-xs text-gray-500 mb-1">
-                Course {r.course_score} · Service {r.service_score} · Price {r.price_score}
+                Course {Number(r.course_score).toFixed(1)} · Service {Number(r.service_score).toFixed(1)} · Price {Number(r.price_score).toFixed(1)}
               </p>
-              {r.comment && <p className="text-sm text-gray-700">{r.comment}</p>}
+              {r.comment && <p className="text-sm text-gray-700 mb-1">{r.comment}</p>}
+              {r.rating_playmates?.length > 0 && (
+                <p className="text-xs text-gray-500">
+                  🏌️ Played with{' '}
+                  {r.rating_playmates
+                    .map((pm) => pm.profiles?.username)
+                    .filter(Boolean)
+                    .join(', ')}
+                </p>
+              )}
             </div>
           ))}
         </div>
